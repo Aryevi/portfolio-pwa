@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.aryevi.twa",
+    "sha256_cert_fingerprints": ["FE:23:75:CD:65:21:D0:15:D1:AB:86:3D:99:FF:8F:5A:D5:EF:19:05:F9:BE:9E:57:B6:EA:3A:FF:58:A1:A4:76"]
+  }
+}]
