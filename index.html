@@ -678,7 +678,8 @@ function renderNews(){
     if(diff < 60)    return 'עכשיו';
     if(diff < 3600)  return 'לפני ' + Math.round(diff/60) + ' דק׳';
     if(diff < 86400) return 'לפני ' + Math.round(diff/3600) + ' ש׳';
-    return d.toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+    if(diff < 86400*7) return 'לפני ' + Math.round(diff/86400) + ' ימים';
+    return d.toLocaleDateString('he-IL',{day:'numeric',month:'long'});
   };
 
   el.innerHTML = allNews.map(n => `
