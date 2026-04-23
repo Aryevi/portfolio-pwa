@@ -123,6 +123,12 @@ footer{position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,.92);back
 .chip-remove:hover{color:var(--red)}
 .refresh-all-btn{width:100%;margin-top:10px;background:var(--green);border:none;color:#fff;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
 .refresh-all-btn:active{opacity:.8}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-left:5px;vertical-align:middle;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.price-flash-up{animation:flashUp .4s ease}
+.price-flash-down{animation:flashDown .4s ease}
+@keyframes flashUp{0%{color:var(--green)}100%{}}
+@keyframes flashDown{0%{color:var(--red)}100%{}}
 .skel{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:10px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
@@ -141,6 +147,7 @@ footer{position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,.92);back
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       Portfolio Tracker
     </div>
+    <div id="live-badge" style="font-size:10px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:3px;margin-right:auto;padding-right:8px"></div>
     <div class="header-right">
       <span class="time-badge" id="last-update">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -728,7 +735,7 @@ function saveAndRefresh(){
   state.analysts = {};
   state.earnings = {};
   switchTab('stocks');
-  refreshAll();
+  refreshAll().then(() => resubscribeWS());
 }
 
 function renderTickerList(){
@@ -762,12 +769,95 @@ function updateFooter(){
   }
 }
 
-// Auto-refresh every 5 minutes
+// ─── WebSocket Live Prices (Finnhub) ────────────────────────────────
+let ws = null;
+let wsReady = false;
+
+function connectWS(){
+  if(ws && ws.readyState <= 1) return; // already open/connecting
+  ws = new WebSocket(`wss://ws.finnhub.io?token=${FINNHUB_KEY}`);
+
+  ws.onopen = () => {
+    wsReady = true;
+    TICKERS.forEach(t => ws.send(JSON.stringify({type:'subscribe', symbol:t})));
+    setLiveBadge(true);
+    console.log('WS connected, subscribed to', TICKERS.length, 'tickers');
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if(msg.type !== 'trade' || !msg.data) return;
+    msg.data.forEach(trade => {
+      const t = trade.s;
+      if(!state.quotes[t]) return;
+      const oldPrice = state.quotes[t].price;
+      const newPrice = trade.p;
+      if(newPrice === oldPrice) return;
+      // Update state
+      state.quotes[t].chg    = parseFloat((newPrice - state.quotes[t].prevClose).toFixed(4));
+      state.quotes[t].chgPct = parseFloat(((newPrice - state.quotes[t].prevClose) / state.quotes[t].prevClose * 100).toFixed(4));
+      state.quotes[t].price  = newPrice;
+      // Flash the card price in DOM directly (no full re-render)
+      updateCardPrice(t, newPrice, oldPrice);
+    });
+  };
+
+  ws.onerror = () => { wsReady = false; setLiveBadge(false); };
+  ws.onclose = () => {
+    wsReady = false;
+    setLiveBadge(false);
+    // Reconnect after 5s
+    setTimeout(connectWS, 5000);
+  };
+}
+
+function updateCardPrice(ticker, newPrice, oldPrice){
+  // Find card and update price + change in-place
+  const cards = document.querySelectorAll('.card');
+  for(const card of cards){
+    const sym = card.querySelector('.sym');
+    if(!sym || !sym.textContent.startsWith(ticker)) continue;
+    const priceEl = card.querySelector('.price');
+    const chgEl   = card.querySelector('.chg');
+    if(priceEl){
+      priceEl.textContent = '$' + newPrice.toFixed(2);
+      priceEl.classList.remove('price-flash-up','price-flash-down');
+      void priceEl.offsetWidth; // reflow
+      priceEl.classList.add(newPrice >= oldPrice ? 'price-flash-up' : 'price-flash-down');
+    }
+    const q = state.quotes[ticker];
+    if(chgEl && q){
+      chgEl.textContent = (q.chgPct>=0?'+':'') + q.chgPct.toFixed(2) + '%';
+      chgEl.className = 'chg ' + (q.chgPct>0?'green':q.chgPct<0?'red':'muted');
+    }
+    break;
+  }
+  // Update KPIs occasionally
+  renderKPIs();
+}
+
+function setLiveBadge(live){
+  const el = document.getElementById('live-badge');
+  if(!el) return;
+  el.innerHTML = live
+    ? '<span class="live-dot"></span>LIVE'
+    : '<span style="color:var(--muted);font-size:10px">מחכה לחיבור...</span>';
+}
+
+// Resubscribe when tickers change
+function resubscribeWS(){
+  if(!ws || ws.readyState !== 1) { connectWS(); return; }
+  // Unsubscribe all, re-subscribe current
+  TICKERS.forEach(t => ws.send(JSON.stringify({type:'unsubscribe', symbol:t})));
+  TICKERS.forEach(t => ws.send(JSON.stringify({type:'subscribe',   symbol:t})));
+}
+
+// Auto-refresh full data every 5 minutes (prices via WS, but analysts/earnings need refresh)
 setInterval(()=>{ if(!state.loading) refreshAll(); }, 300000);
 setInterval(updateFooter, 30000);
 
 // Boot
-refreshAll();
+refreshAll().then(() => connectWS());
 </script>
 </body>
 </html>
