@@ -568,10 +568,13 @@ function renderStocks(){
 
     return `<div class="card" onclick="openDetail('${t}')">
       <div class="card-top">
-        <div class="card-left">
-          <div class="sym">${t}${earnBadge?` <span class="earn-badge">${earnBadge}</span>`:''}</div>
-          ${q.name&&q.name!==t?`<div class="name">${q.name}</div>`:''}
-          ${a.numAnalysts>0?`<div class="con ${conColor(a.recommendation)}">${conLabel(a.recommendation)}</div>`:'<div style="height:14px"></div>'}
+        <div class="card-left" style="flex-direction:row;align-items:center;gap:10px">
+          ${state.profiles[t]?.logo?`<img src="${state.profiles[t].logo}" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:var(--bg3);padding:3px;flex-shrink:0" onerror="this.style.display='none'" loading="lazy">`:'<div style="width:32px;height:32px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:var(--accent)">${t.slice(0,2)}</div>'}
+          <div>
+            <div class="sym">${t}${earnBadge?` <span class="earn-badge">${earnBadge}</span>`:''}</div>
+            ${q.name&&q.name!==t?`<div class="name">${q.name}</div>`:''}
+            ${a.numAnalysts>0?`<div class="con ${conColor(a.recommendation)}">${conLabel(a.recommendation)}</div>`:'<div style="height:14px"></div>'}
+          </div>
         </div>
         <div class="card-right">
           <div class="price">${priceStr}</div>
@@ -672,8 +675,9 @@ function renderNews(){
     const d = new Date(ts*1000);
     const now = Date.now()/1000;
     const diff = now - ts;
-    if(diff < 3600)  return Math.round(diff/60)+'ד';
-    if(diff < 86400) return Math.round(diff/3600)+'ש';
+    if(diff < 60)    return 'עכשיו';
+    if(diff < 3600)  return 'לפני ' + Math.round(diff/60) + ' דק׳';
+    if(diff < 86400) return 'לפני ' + Math.round(diff/3600) + ' ש׳';
     return d.toLocaleDateString('he-IL',{day:'numeric',month:'short'});
   };
 
@@ -832,8 +836,9 @@ function openDetail(ticker){
   if(tickerNews.length){
     const timeStr = ts => {
       const diff = Date.now()/1000 - ts;
-      if(diff < 3600)  return Math.round(diff/60)+'ד׳';
-      if(diff < 86400) return Math.round(diff/3600)+'ש׳';
+      if(diff < 60)    return 'עכשיו';
+      if(diff < 3600)  return 'לפני ' + Math.round(diff/60) + ' דק׳';
+      if(diff < 86400) return 'לפני ' + Math.round(diff/3600) + ' ש׳';
       return new Date(ts*1000).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
     };
     html += `<div class="block">
