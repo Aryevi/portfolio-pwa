@@ -1112,6 +1112,11 @@ function resubscribeWS(){
 setInterval(()=>{ if(!state.loading) refreshAll(); }, 300000);
 setInterval(updateFooter, 30000);
 
+// Register Service Worker (enables PWA install)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
 // Boot
 refreshAll().then(() => connectWS());
 </script>
