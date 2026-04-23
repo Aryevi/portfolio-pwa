@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Portfolio">
+<link rel="manifest" href="manifest.json">
+<title>Portfolio Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;
+    --border:#2a2e42;--text:#e8eaf6;--muted:#6b7280;
+    --green:#10b981;--red:#ef4444;--amber:#f59e0b;
+    --blue:#6366f1;--accent:#818cf8;
+  }
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+  
+  /* Header */
+  header{position:sticky;top:0;z-index:50;background:rgba(15,17,23,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:12px 16px}
+  .header-inner{max-width:500px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
+  .logo svg{color:var(--accent)}
+  .header-right{display:flex;align-items:center;gap:8px}
+  .time-badge{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+  .btn-refresh{background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:.2s}
+  .btn-refresh:hover{background:var(--bg3)}
+  .btn-refresh.spinning svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Main */
+  main{max-width:500px;margin:0 auto;padding:12px 12px 80px}
+
+  /* KPI strip */
+  .kpi-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
+  .kpi-val{font-size:22px;font-weight:700;line-height:1}
+  .kpi-label{font-size:10px;color:var(--muted);margin-top:3px}
+
+  /* Tabs */
+  .tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:3px;margin-bottom:12px;gap:2px}
+  .tab{flex:1;padding:7px;text-align:center;font-size:12px;font-weight:600;border-radius:9px;cursor:pointer;color:var(--muted);transition:.2s;border:none;background:none}
+  .tab.active{background:var(--bg3);color:var(--text)}
+
+  /* Search & sort */
+  .controls{display:flex;gap:8px;margin-bottom:10px}
+  .search{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
+  .search:focus{border-color:var(--accent)}
+  .sort-sel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--text);font-size:12px;outline:none}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  /* Ticker card */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:.15s;user-select:none}
+  .card:active{transform:scale(.97)}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+  .card-left .sym{font-weight:700;font-size:13px}
+  .card-left .con{font-size:10px;font-weight:600;margin-top:2px}
+  .card-right .price{font-weight:700;font-size:13px;text-align:left}
+  .card-right .chg{font-size:11px;font-weight:600;text-align:left}
+  .card-ah{display:flex;justify-content:space-between;font-size:10px;margin-top:5px;padding-top:5px;border-top:1px solid var(--border)}
+  .card-target{display:flex;justify-content:space-between;font-size:10px;margin-top:4px}
+  .earn-badge{font-size:9px;font-weight:700;background:rgba(245,158,11,.15);color:var(--amber);padding:1px 5px;border-radius:4px;margin-right:4px}
+
+  /* Earnings list */
+  .earn-list{display:flex;flex-direction:column;gap:6px}
+  .earn-row{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px}
+  .earn-row.today{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3)}
+  .earn-row.soon{background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2)}
+  .earn-left .esym{font-weight:700;font-size:14px}
+  .earn-left .eprev{font-size:10px;color:var(--muted);margin-top:2px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .earn-right{text-align:left}
+  .earn-right .edate{font-size:12px;font-weight:600}
+  .earn-right .edays{font-size:10px;color:var(--muted);margin-top:2px}
+  .month-hdr{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 6px 4px}
+
+  /* Analyst leaderboard */
+  .anal-list{display:flex;flex-direction:column;gap:8px}
+  .anal-row{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px}
+  .anal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .anal-sym{font-weight:700;font-size:14px}
+  .anal-con{font-size:11px;font-weight:600;margin-right:6px}
+  .anal-upside{font-size:16px;font-weight:700}
+  .bar{height:6px;border-radius:3px;overflow:hidden;display:flex;margin-bottom:4px}
+  .bar-bull{background:var(--green);height:100%}
+  .bar-neu{background:var(--amber);height:100%}
+  .bar-bear{background:var(--red);height:100%}
+  .anal-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+
+  /* Detail overlay */
+  .overlay{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;display:none}
+  .overlay.open{display:block}
+  .overlay-inner{max-width:500px;margin:0 auto;padding:16px 16px 80px}
+  .overlay-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+  .overlay-sym{font-size:22px;font-weight:700}
+  .overlay-name{font-size:11px;color:var(--muted);margin-top:2px}
+  .btn-close{background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px}
+  
+  .block{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+  .block-title{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px;margin-bottom:10px;color:var(--accent)}
+  .price-big{font-size:28px;font-weight:700}
+  .price-chg{font-size:14px;font-weight:600;margin-top:2px}
+  .range-bar{height:6px;background:var(--bg3);border-radius:3px;position:relative;margin:8px 0}
+  .range-fill{height:100%;background:var(--accent);border-radius:3px;position:absolute;top:0;left:0}
+  .range-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .stat{background:var(--bg3);border-radius:10px;padding:8px}
+  .stat-label{font-size:10px;color:var(--muted);margin-bottom:2px}
+  .stat-val{font-size:13px;font-weight:700}
+  .targets-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .target-box{background:var(--bg3);border-radius:10px;padding:10px}
+  .target-label{font-size:10px;color:var(--muted);margin-bottom:4px}
+  .target-val{font-size:16px;font-weight:700}
+  .grade-row{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:10px;margin-bottom:6px;font-size:11px}
+  .grade-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .grade-firm{font-weight:600;flex:1}
+  .grade-action{color:var(--muted)}
+  .grade-date{color:var(--muted);font-size:10px;margin-right:auto}
+  .btn-sentiment{width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:10px;cursor:pointer;font-size:12px}
+  .sentiment-content{font-size:12px;color:var(--muted);line-height:1.6;white-space:pre-wrap;margin-top:8px}
+
+  /* Footer */
+  footer{position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);border-top:1px solid var(--border);padding:8px 16px}
+  .footer-inner{max-width:500px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted)}
+
+  /* Skeleton */
+  .skel{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:10px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .green{color:var(--green)} .red{color:var(--red)} .amber{color:var(--amber)} .blue{color:var(--blue)} .accent{color:var(--accent)} .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      Portfolio Tracker
+    </div>
+    <div class="header-right">
+      <span class="time-badge" id="last-update">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        טוען...
+      </span>
+      <button class="btn-refresh" id="btn-refresh" onclick="refreshAll()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        רענן
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="kpi-strip">
+    <div class="kpi"><div class="kpi-val green" id="kpi-up">—</div><div class="kpi-label">עולות</div></div>
+    <div class="kpi"><div class="kpi-val red" id="kpi-down">—</div><div class="kpi-label">יורדות</div></div>
+    <div class="kpi"><div class="kpi-val amber" id="kpi-earn">—</div><div class="kpi-label">דוחות קרובים</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('stocks')">מניות</button>
+    <button class="tab" onclick="switchTab('earnings')">דוחות</button>
+    <button class="tab" onclick="switchTab('analysts')">אנליסטים</button>
+  </div>
+
+  <div id="tab-stocks">
+    <div class="controls">
+      <input class="search" type="search" placeholder="חפש מניה..." oninput="renderStocks()" id="search-input">
+      <select class="sort-sel" onchange="renderStocks()" id="sort-sel">
+        <option value="change">שינוי%</option>
+        <option value="alpha">A-Z</option>
+        <option value="cap">שווי שוק</option>
+      </select>
+    </div>
+    <div class="grid" id="stocks-grid"></div>
+  </div>
+
+  <div id="tab-earnings" style="display:none">
+    <div id="earnings-list"></div>
+  </div>
+
+  <div id="tab-analysts" style="display:none">
+    <div class="anal-list" id="analysts-list"></div>
+  </div>
+</main>
+
+<!-- Detail overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-inner" id="overlay-inner"></div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span id="footer-time">טוען נתונים...</span>
+    <span id="footer-count" class="accent"></span>
+  </div>
+</footer>
+
+<script>
+const FMP_KEY = 'rKmokBqztXv4RR16yxa7B2HINZ5VPpZY';
+const BASE = 'https://financialmodelingprep.com/stable';
+const TICKERS = ['AMD','TSM','ORCL','STLD','AAPL','EXE','GOOGL','MSFT','AA','QQQ','AMP','FLR','CMCSA','PYPL','WMT','MRK','TSLA','KFY','SAR','BIDU','COST','SNY','IBM','HPQ','WIMI'];
+const MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+let state = { quotes:{}, earnings:{}, analysts:{}, lastFetch:0, loading:false };
+let currentTab = 'stocks';
+
+async function fmp(path, params={}) {
+  const url = new URL(`${BASE}/${path}`);
+  url.searchParams.set('apikey', FMP_KEY);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const r = await fetch(url.toString());
+  if (!r.ok) return [];
+  return r.json();
+}
+
+function fmt$(n) { return n != null ? '$'+parseFloat(n).toFixed(2) : '—'; }
+function fmtPct(n) { if (n == null) return '—'; const v=parseFloat(n); return (v>=0?'+':'')+v.toFixed(2)+'%'; }
+function fmtCap(n) { if (!n) return '—'; if (n>=1e12) return '$'+(n/1e12).toFixed(2)+'T'; if (n>=1e9) return '$'+(n/1e9).toFixed(1)+'B'; return '$'+(n/1e6).toFixed(0)+'M'; }
+function colorPct(n) { if (n==null) return 'muted'; return parseFloat(n)>0?'green':parseFloat(n)<0?'red':'muted'; }
+function daysUntil(d) { if (!d) return null; return Math.ceil((new Date(d)-new Date().setHours(0,0,0,0))/86400000); }
+function timeAgo(ts) { const s=Math.round((Date.now()-ts)/1000); if(s<60) return `לפני ${s}ש׳`; if(s<3600) return `לפני ${Math.round(s/60)} דק׳`; return `לפני ${Math.round(s/3600)} שע׳`; }
+function adjTarget(avg, price, bull) { if (!avg||!price) return null; const a=bull/100; return avg*a + price*(1-a)*0.6 + avg*(1-a)*0.4; }
+function consensusColor(c) { const l=(c||'').toLowerCase(); if(l.includes('strong buy')) return 'green'; if(l.includes('buy')) return 'green'; if(l.includes('hold')||l.includes('neutral')) return 'amber'; if(l.includes('sell')) return 'red'; return 'muted'; }
+
+async function loadQuotes() {
+  const results = await Promise.all(
+    TICKERS.map(t => fmp('quote', {symbol:t}).then(d => ({ticker:t, data:d&&d[0]?d[0]:null})).catch(()=>({ticker:t,data:null})))
+  );
+  results.forEach(({ticker,data}) => { if(data) state.quotes[ticker] = data; });
+}
+
+async function loadAfterHours() {
+  await Promise.all(
+    TICKERS.map(t => fmp('aftermarket-quote', {symbol:t}).then(d => {
+      if (d&&d[0] && state.quotes[t]) {
+        const bid = parseFloat(d[0].bidPrice||0), ask = parseFloat(d[0].askPrice||0);
+        if (bid&&ask) {
+          const ah = (bid+ask)/2;
+          const price = parseFloat(state.quotes[t].price||0);
+          state.quotes[t]._ahPrice = ah.toFixed(2);
+          state.quotes[t]._ahPct = price ? (((ah-price)/price)*100).toFixed(2) : null;
+        }
+      }
+    }).catch(()=>{}))
+  );
+}
+
+async function loadEarnings() {
+  const today = new Date().toISOString().slice(0,10);
+  await Promise.all(
+    TICKERS.map(t => fmp('earnings', {symbol:t, limit:3}).then(d => {
+      if (!d||!d.length) { state.earnings[t]={date:null,preview:'',status:'unknown'}; return; }
+      const upcoming = d.filter(e=>e.date&&e.date>=today);
+      const past = d.filter(e=>e.date&&e.date<today);
+      const entry = upcoming[0]||past[0];
+      if (!entry) { state.earnings[t]={date:null,preview:'',status:'unknown'}; return; }
+      let preview='';
+      if (entry.epsActual!=null) preview=`EPS בפועל: $${parseFloat(entry.epsActual).toFixed(2)}`;
+      else if (entry.epsEstimated!=null) preview=`תחזית EPS: $${parseFloat(entry.epsEstimated).toFixed(2)}`;
+      if (entry.revenueEstimated) preview+=' | הכנסות: $'+(entry.revenueEstimated/1e9).toFixed(1)+'B';
+      state.earnings[t] = {date:entry.date, preview, status:entry.date>=today?'upcoming':'reported'};
+    }).catch(()=>{state.earnings[t]={date:null,preview:'',status:'unknown'};}))
+  );
+}
+
+async function loadAnalysts() {
+  await Promise.all(
+    TICKERS.map(async t => {
+      try {
+        const [con, pt, gr] = await Promise.all([
+          fmp('grades-consensus',{symbol:t}),
+          fmp('price-target-consensus',{symbol:t}),
+          fmp('grades',{symbol:t,limit:5})
+        ]);
+        const c = con&&con[0]?con[0]:{};
+        const p = pt&&pt[0]?pt[0]:{};
+        const strongBuy=+(c.strongBuy||0), buy=+(c.buy||0), hold=+(c.hold||0), sell=+(c.sell||0), strongSell=+(c.strongSell||0);
+        const total = strongBuy+buy+hold+sell+strongSell;
+        const bull = strongBuy+buy, bear = sell+strongSell;
+        state.analysts[t] = {
+          consensus: c.consensus||'Hold',
+          totalRatings: total,
+          bullPct: total ? Math.round(bull/total*100) : 0,
+          neutralPct: total ? Math.round(hold/total*100) : 0,
+          bearPct: total ? Math.round(bear/total*100) : 0,
+          avgTarget: p.targetConsensus||null,
+          highTarget: p.targetHigh||null,
+          lowTarget: p.targetLow||null,
+          medianTarget: p.targetMedian||null,
+          recentChanges: (gr||[]).slice(0,5).map(g=>({
+            date:(g.date||'').slice(0,10),
+            firm:g.gradingCompany||'',
+            action:(g.action||'').charAt(0).toUpperCase()+(g.action||'').slice(1),
+            rating:g.newGrade||'',
+            sentiment:/buy|outperform|overweight/i.test(g.newGrade||'')?'bullish':/sell|underperform|underweight/i.test(g.newGrade||'')?'bearish':'neutral'
+          }))
+        };
+      } catch(e) {
+        state.analysts[t]={consensus:'Hold',totalRatings:0,bullPct:0,neutralPct:0,bearPct:0,avgTarget:null,highTarget:null,lowTarget:null,medianTarget:null,recentChanges:[]};
+      }
+    })
+  );
+}
+
+async function refreshAll(force=true) {
+  if (state.loading) return;
+  state.loading = true;
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.add('spinning');
+  document.getElementById('footer-time').textContent = 'מעדכן...';
+
+  try {
+    await Promise.all([loadQuotes(), loadEarnings(), loadAnalysts()]);
+    await loadAfterHours();
+    state.lastFetch = Date.now();
+  } finally {
+    state.loading = false;
+    btn.classList.remove('spinning');
+    renderAll();
+    updateFooter();
+  }
+}
+
+function renderAll() {
+  renderKPIs();
+  renderStocks();
+  renderEarnings();
+  renderAnalysts();
+}
+
+function renderKPIs() {
+  const tickers = Object.keys(state.quotes);
+  const up = tickers.filter(t => parseFloat(state.quotes[t]?.changePercentage||0)>0).length;
+  const down = tickers.filter(t => parseFloat(state.quotes[t]?.changePercentage||0)<0).length;
+  const earn = Object.values(state.earnings).filter(e => { const d=daysUntil(e.date); return d!=null&&d>=0&&d<=14; }).length;
+  document.getElementById('kpi-up').textContent = tickers.length ? up : '—';
+  document.getElementById('kpi-down').textContent = tickers.length ? down : '—';
+  document.getElementById('kpi-earn').textContent = Object.keys(state.earnings).length ? earn : '—';
+}
+
+function renderStocks() {
+  const filter = (document.getElementById('search-input')?.value||'').toLowerCase();
+  const sort = document.getElementById('sort-sel')?.value||'change';
+  const grid = document.getElementById('stocks-grid');
+
+  let tickers = TICKERS.filter(t => t.toLowerCase().includes(filter));
+  tickers.sort((a,b) => {
+    if (sort==='alpha') return a.localeCompare(b);
+    if (sort==='change') return (parseFloat(state.quotes[b]?.changePercentage||0)) - (parseFloat(state.quotes[a]?.changePercentage||0));
+    if (sort==='cap') return (state.quotes[b]?.marketCap||0) - (state.quotes[a]?.marketCap||0);
+  });
+
+  if (!Object.keys(state.quotes).length) {
+    grid.innerHTML = Array.from({length:10}).map(()=>`<div class="skel" style="height:90px"></div>`).join('');
+    return;
+  }
+
+  grid.innerHTML = tickers.map(t => {
+    const q = state.quotes[t]||{};
+    const a = state.analysts[t]||{};
+    const e = state.earnings[t]||{};
+    const price = parseFloat(q.price||0);
+    const chgPct = parseFloat(q.changePercentage||0);
+    const ahPrice = q._ahPrice ? parseFloat(q._ahPrice) : null;
+    const ahPct = q._ahPct ? parseFloat(q._ahPct) : null;
+    const days = daysUntil(e.date);
+    const earnBadge = days===0?'היום':days>0&&days<=7?`${days}י׳`:'';
+    const avg = a.avgTarget ? parseFloat(a.avgTarget) : null;
+    const adj = adjTarget(avg, price, a.bullPct||0);
+    const upside = adj&&price ? ((adj-price)/price*100) : null;
+
+    return `<div class="card" onclick="openDetail('${t}')">
+      <div class="card-top">
+        <div class="card-left">
+          <div class="sym">${t}${earnBadge?`<span class="earn-badge">${earnBadge}</span>`:''}</div>
+          ${a.totalRatings>0?`<div class="con ${consensusColor(a.consensus)}">${(a.consensus||'').toUpperCase()}</div>`:''}
+        </div>
+        <div class="card-right">
+          <div class="price">${price?fmt$(price):'טוען'}</div>
+          <div class="chg ${colorPct(chgPct)}">${fmtPct(chgPct)}</div>
+        </div>
+      </div>
+      ${ahPrice?`<div class="card-ah"><span class="muted">After Hours</span><span class="${colorPct(ahPct)}">${fmt$(ahPrice)} (${fmtPct(ahPct)})</span></div>`:''}
+      ${avg&&price?`<div class="card-target"><span class="muted">יעד</span><span>${fmt$(adj)} <span class="${colorPct(upside)}">(${fmtPct(upside)})</span></span></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderEarnings() {
+  const el = document.getElementById('earnings-list');
+  const today = new Date().toISOString().slice(0,10);
+  const entries = Object.entries(state.earnings)
+    .filter(([,e])=>e.date)
+    .sort(([,a],[,b])=>new Date(a.date)-new Date(b.date));
+
+  if (!entries.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;font-size:13px">טוען דוחות...</div>'; return; }
+
+  const groups = {};
+  entries.forEach(([t,e]) => {
+    const d = new Date(e.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!groups[key]) groups[key]=[];
+    groups[key].push([t,e]);
+  });
+
+  el.innerHTML = Object.entries(groups).map(([key, rows]) => {
+    const [yr, mo] = key.split('-');
+    const header = `<div class="month-hdr">${MONTHS[parseInt(mo)-1]} ${yr}</div>`;
+    const items = rows.map(([t,e]) => {
+      const days = daysUntil(e.date);
+      const cls = days===0?'today':days>0&&days<=7?'soon':'';
+      const badge = days===0?'<span class="earn-badge">היום</span>':days>0&&days<=7?`<span class="earn-badge">${days}י׳</span>`:'';
+      return `<div class="earn-row ${cls}">
+        <div class="earn-left">
+          <div class="esym">${t} ${badge}</div>
+          <div class="eprev">${e.preview||''}</div>
+        </div>
+        <div class="earn-right">
+          <div class="edate">${e.date}</div>
+          <div class="edays">${days===0?'היום':days>0?`${days} ימים`:'דווח'}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return header+`<div class="earn-list">${items}</div>`;
+  }).join('');
+}
+
+function renderAnalysts() {
+  const el = document.getElementById('analysts-list');
+  const rows = Object.entries(state.analysts)
+    .filter(([,a])=>a.avgTarget&&a.totalRatings>0)
+    .map(([t,a]) => {
+      const price = parseFloat(state.quotes[t]?.price||0);
+      const adj = adjTarget(parseFloat(a.avgTarget||0), price, a.bullPct||0);
+      const upside = adj&&price ? ((adj-price)/price*100) : null;
+      return {t,a,adj,upside};
+    })
+    .sort((x,y) => (y.upside||0)-(x.upside||0));
+
+  if (!rows.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;font-size:13px">טוען אנליסטים...</div>'; return; }
+
+  el.innerHTML = rows.map(({t,a,adj,upside}) => `
+    <div class="anal-row">
+      <div class="anal-top">
+        <div><span class="anal-sym">${t}</span> <span class="anal-con ${consensusColor(a.consensus)}">${(a.consensus||'').toUpperCase()}</span></div>
+        ${upside!=null?`<span class="anal-upside ${colorPct(upside)}">${fmtPct(upside)}</span>`:''}
+      </div>
+      <div class="bar"><div class="bar-bull" style="width:${a.bullPct}%"></div><div class="bar-neu" style="width:${a.neutralPct}%"></div><div class="bar-bear" style="width:${a.bearPct}%"></div></div>
+      <div class="anal-meta">
+        <span>${a.totalRatings} דירוגים • Bull ${a.bullPct}%</span>
+        <span>יעד מותאם: <span class="${colorPct(upside)}">${adj?fmt$(adj):'—'}</span></span>
+      </div>
+    </div>`).join('');
+}
+
+function openDetail(ticker) {
+  const q = state.quotes[ticker]||{};
+  const a = state.analysts[ticker]||{};
+  const e = state.earnings[ticker]||{};
+  const price = parseFloat(q.price||0);
+  const chg = parseFloat(q.change||0);
+  const chgPct = parseFloat(q.changePercentage||0);
+  const ahPrice = q._ahPrice?parseFloat(q._ahPrice):null;
+  const ahPct = q._ahPct?parseFloat(q._ahPct):null;
+  const avg = a.avgTarget?parseFloat(a.avgTarget):null;
+  const adj = adjTarget(avg, price, a.bullPct||0);
+  const upside = adj&&price?((adj-price)/price*100):null;
+  const days = daysUntil(e.date);
+
+  let html = `
+    <div class="overlay-hdr">
+      <div>
+        <div class="overlay-sym">${ticker}</div>
+        <div class="overlay-name">${q.name||''}</div>
+        ${a.totalRatings>0?`<div class="${consensusColor(a.consensus)}" style="font-size:12px;font-weight:600;margin-top:2px">${(a.consensus||'').toUpperCase()}</div>`:''}
+      </div>
+      <button class="btn-close" onclick="closeDetail()">✕</button>
+    </div>
+
+    <div class="block">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="price-big">${price?fmt$(price):'—'}</div>
+          <div class="price-chg ${colorPct(chgPct)}">${fmt$(chg)} (${fmtPct(chgPct)})</div>
+        </div>
+        ${ahPrice?`<div style="text-align:left">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">After Hours</div>
+          <div style="font-size:20px;font-weight:700" class="${colorPct(ahPct)}">${fmt$(ahPrice)}</div>
+          <div style="font-size:12px" class="${colorPct(ahPct)}">${fmtPct(ahPct)}</div>
+        </div>`:''}
+      </div>
+      ${q.dayLow&&q.dayHigh?`
+        <div class="range-labels" style="margin-top:12px"><span>נמוך: ${fmt$(q.dayLow)}</span><span>גבוה: ${fmt$(q.dayHigh)}</span></div>
+        <div class="range-bar"><div class="range-fill" style="width:${price&&q.dayLow&&q.dayHigh?Math.min(100,Math.max(0,(price-q.dayLow)/(q.dayHigh-q.dayLow)*100)):0}%"></div></div>
+        <div class="range-labels"><span>52W: ${fmt$(q.yearLow)}</span><span>52W: ${fmt$(q.yearHigh)}</span></div>
+      `:''}
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-label">שווי שוק</div><div class="stat-val">${fmtCap(q.marketCap)}</div></div>
+        <div class="stat"><div class="stat-label">פתיחה</div><div class="stat-val">${fmt$(q.open)}</div></div>
+        <div class="stat"><div class="stat-label">סגירה קודמת</div><div class="stat-val">${fmt$(q.previousClose)}</div></div>
+      </div>
+    </div>`;
+
+  if (e.date) {
+    html += `<div class="block">
+      <div class="block-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        דוח רווחים ${e.status==='upcoming'?'הבא':'אחרון'}
+      </div>
+      <div style="font-size:20px;font-weight:700">${e.date}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${days===0?'היום!':days>0?`${days} ימים`:'דווח'}</div>
+      ${e.preview?`<div style="font-size:11px;color:var(--muted);margin-top:8px">${e.preview}</div>`:''}
+    </div>`;
+  }
+
+  if (a.totalRatings>0) {
+    html += `<div class="block">
+      <div class="block-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        ניתוח אנליסטים (${a.totalRatings} דירוגים)
+      </div>
+      <div class="bar" style="height:8px;margin-bottom:6px"><div class="bar-bull" style="width:${a.bullPct}%"></div><div class="bar-neu" style="width:${a.neutralPct}%"></div><div class="bar-bear" style="width:${a.bearPct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:12px">
+        <span class="green">Bull ${a.bullPct}%</span><span class="amber">Neutral ${a.neutralPct}%</span><span class="red">Bear ${a.bearPct}%</span>
+      </div>
+      <div class="targets-grid">
+        <div class="target-box"><div class="target-label">יעד ממוצע</div><div class="target-val">${avg?fmt$(avg):'—'}</div></div>
+        <div class="target-box"><div class="target-label">יעד מותאם*</div><div class="target-val ${colorPct(upside)}">${adj?fmt$(adj):'—'} ${upside!=null?`<span style="font-size:11px">(${fmtPct(upside)})</span>`:''}</div></div>
+        <div class="target-box"><div class="target-label">יעד נמוך</div><div class="target-val">${fmt$(a.lowTarget)}</div></div>
+        <div class="target-box"><div class="target-label">יעד גבוה</div><div class="target-val">${fmt$(a.highTarget)}</div></div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:10px">* יעד מותאם לדיוק ניבויים: ממוצע × דיוק + מחיר × (1−דיוק) × 0.6</div>
+      ${a.recentChanges.length?`
+        <div style="font-size:11px;font-weight:600;margin-bottom:6px">שינויי דירוג אחרונים</div>
+        ${a.recentChanges.map(ch=>`
+          <div class="grade-row">
+            <div class="grade-dot" style="background:${ch.sentiment==='bullish'?'var(--green)':ch.sentiment==='bearish'?'var(--red)':'var(--amber)'}"></div>
+            <div class="grade-firm">${ch.firm}</div>
+            <div class="grade-action">${ch.action} — ${ch.rating}</div>
+            <div class="grade-date">${ch.date}</div>
+          </div>`).join('')}`:''}
+    </div>`;
+  }
+
+  html += `<div class="block">
+    <div class="block-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      סנטימנט שוק
+    </div>
+    <button class="btn-sentiment" id="btn-sent-${ticker}" onclick="loadSentiment('${ticker}')">טען סנטימנט</button>
+    <div id="sent-${ticker}"></div>
+  </div>`;
+
+  document.getElementById('overlay-inner').innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+async function loadSentiment(ticker) {
+  document.getElementById(`btn-sent-${ticker}`).style.display='none';
+  document.getElementById(`sent-${ticker}`).innerHTML='<div class="skel" style="height:60px;margin-top:8px"></div>';
+  try {
+    const [con, pt, gr] = await Promise.all([
+      fmp('grades-consensus',{symbol:ticker}),
+      fmp('price-target-consensus',{symbol:ticker}),
+      fmp('grades',{symbol:ticker,limit:5})
+    ]);
+    const c=con&&con[0]?con[0]:{}, p=pt&&pt[0]?pt[0]:{};
+    const total=(+(c.strongBuy||0))+(+(c.buy||0))+(+(c.hold||0))+(+(c.sell||0))+(+(c.strongSell||0));
+    const price=parseFloat(state.quotes[ticker]?.price||0);
+    const avgT=parseFloat(p.targetConsensus||0);
+    let content=`דירוג קונצנזוס: ${c.consensus||'—'}\nמספר אנליסטים: ${total}`;
+    if(avgT&&price){const up=((avgT-price)/price*100).toFixed(1);content+=`\nיעד ממוצע: $${avgT.toFixed(2)} (${up>0?'+':''}${up}% מהמחיר הנוכחי)`;}
+    if(p.targetHigh)content+=`\nיעד גבוה: $${p.targetHigh} | יעד נמוך: $${p.targetLow||'—'}`;
+    if(gr&&gr.length){content+='\n\nשינויי דירוג אחרונים:\n';gr.slice(0,5).forEach(g=>{content+=`• ${g.gradingCompany} — ${g.action}: ${g.newGrade} (${(g.date||'').slice(0,10)})\n`;});}
+    document.getElementById(`sent-${ticker}`).innerHTML=`<div class="sentiment-content">${content}</div>`;
+  } catch(e) {
+    document.getElementById(`sent-${ticker}`).innerHTML='<div class="muted" style="font-size:12px;margin-top:8px">שגיאה בטעינה</div>';
+  }
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['stocks','earnings','analysts'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t===tab?'':'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['stocks','earnings','analysts'][i]===tab);
+  });
+}
+
+function updateFooter() {
+  const count = Object.keys(state.quotes).length;
+  document.getElementById('footer-count').textContent = `${count} מניות`;
+  if (state.lastFetch) {
+    document.getElementById('footer-time').textContent = `עודכן ${timeAgo(state.lastFetch)} • רענון אוטומטי כל דקה`;
+    document.getElementById('last-update').innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${timeAgo(state.lastFetch)}`;
+  }
+}
+
+// Auto-refresh every 60s
+setInterval(() => { if (!state.loading) refreshAll(); }, 60000);
+setInterval(updateFooter, 15000);
+
+// Load on start
+refreshAll();
+</script>
+</body>
+</html>
