@@ -51,17 +51,18 @@ main{max-width:500px;margin:0 auto;padding:12px 12px 80px}
 
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:.15s;user-select:none;position:relative}
 .card:active{transform:scale(.97)}
-.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.card-left{display:flex;align-items:center;gap:10px}
-.card-left .sym{font-weight:700;font-size:18px}
-.card-left .con{font-size:10px;font-weight:600;margin-top:2px}
-.card-right{text-align:left}
-.card-right .price{font-weight:700;font-size:20px}
-.card-right .chg{font-size:13px;font-weight:600;margin-top:1px}
-.card-extra{font-size:11px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.card-extra-item{display:flex;flex-direction:column;gap:1px}
-.card-extra-label{font-size:9px;color:var(--muted)}
-.card-extra-val{font-size:11px;font-weight:600}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.card-left{display:flex;flex-direction:column;gap:3px}
+.card-left .sym{font-weight:700;font-size:18px;line-height:1}
+.card-left .name{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.card-left .con{font-size:10px;font-weight:700}
+.card-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.card-right .price{font-weight:700;font-size:20px;line-height:1}
+.card-right .chg{font-size:13px;font-weight:600}
+.card-extra{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.card-extra-item{display:flex;flex-direction:column;gap:2px}
+.card-extra-label{font-size:9px;color:var(--muted);text-align:center}
+.card-extra-val{font-size:11px;font-weight:600;text-align:center}
 .earn-badge{display:inline-block;font-size:9px;font-weight:700;background:rgba(245,158,11,.15);color:var(--amber);padding:1px 6px;border-radius:4px;margin-top:3px;vertical-align:middle;line-height:1.4}
 
 .earn-list{display:flex;flex-direction:column;gap:6px}
@@ -514,18 +515,14 @@ function renderStocks(){
 
     const priceStr = price>0 ? fmt$(price) : '<span class="muted" style="font-size:11px">טוען...</span>';
 
-    const dayRange = q.dayLow&&q.dayHigh ? `${fmt$(q.dayLow)} – ${fmt$(q.dayHigh)}` : '—';
-    const vol      = q.volume ? (q.volume>=1e6?(q.volume/1e6).toFixed(1)+'M':(q.volume/1e3).toFixed(0)+'K') : '—';
-    const targetStr = target ? `${fmt$(target)} (${fmtPct(upside)})` : '—';
+    const vol = q.volume ? (q.volume>=1e6?(q.volume/1e6).toFixed(1)+'M':(q.volume/1e3).toFixed(0)+'K') : '—';
 
     return `<div class="card" onclick="openDetail('${t}')">
       <div class="card-top">
         <div class="card-left">
-          <div>
-            <div class="sym">${t}${earnBadge?`<span class="earn-badge" style="font-size:9px;margin-right:0;margin-right:5px">${earnBadge}</span>`:''}</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:2px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.name&&q.name!==t?q.name:''}</div>
-          </div>
-          ${a.numAnalysts>0?`<div class="con ${conColor(a.recommendation)}" style="font-size:10px;font-weight:700;white-space:nowrap">${conLabel(a.recommendation)}</div>`:''}
+          <div class="sym">${t}${earnBadge?` <span class="earn-badge">${earnBadge}</span>`:''}</div>
+          ${q.name&&q.name!==t?`<div class="name">${q.name}</div>`:''}
+          ${a.numAnalysts>0?`<div class="con ${conColor(a.recommendation)}">${conLabel(a.recommendation)}</div>`:'<div style="height:14px"></div>'}
         </div>
         <div class="card-right">
           <div class="price">${priceStr}</div>
@@ -534,16 +531,16 @@ function renderStocks(){
       </div>
       <div class="card-extra">
         <div class="card-extra-item">
-          <span class="card-extra-label">טווח יום</span>
-          <span class="card-extra-val">${dayRange}</span>
+          <span class="card-extra-label">נמוך</span>
+          <span class="card-extra-val">${q.dayLow?fmt$(q.dayLow):'—'}</span>
         </div>
         <div class="card-extra-item">
-          <span class="card-extra-label">נפח</span>
-          <span class="card-extra-val">${vol}</span>
+          <span class="card-extra-label">גבוה</span>
+          <span class="card-extra-val">${q.dayHigh?fmt$(q.dayHigh):'—'}</span>
         </div>
         <div class="card-extra-item">
-          <span class="card-extra-label">יעד אנליסטים</span>
-          <span class="card-extra-val ${clr(upside)}">${targetStr}</span>
+          <span class="card-extra-label">יעד</span>
+          <span class="card-extra-val ${clr(upside)}">${target?fmt$(target):'—'}</span>
         </div>
       </div>
     </div>`;
