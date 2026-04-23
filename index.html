@@ -47,17 +47,21 @@ main{max-width:500px;margin:0 auto;padding:12px 12px 80px}
 .search:focus{border-color:var(--accent)}
 .sort-sel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--text);font-size:12px;outline:none}
 
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid{display:grid;grid-template-columns:1fr;gap:8px}
 
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:.15s;user-select:none;position:relative}
 .card:active{transform:scale(.97)}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
-.card-left .sym{font-weight:700;font-size:14px}
+.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.card-left{display:flex;align-items:center;gap:10px}
+.card-left .sym{font-weight:700;font-size:18px}
 .card-left .con{font-size:10px;font-weight:600;margin-top:2px}
 .card-right{text-align:left}
-.card-right .price{font-weight:700;font-size:13px}
-.card-right .chg{font-size:11px;font-weight:600}
-.card-extra{font-size:10px;margin-top:5px;padding-top:5px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
+.card-right .price{font-weight:700;font-size:20px}
+.card-right .chg{font-size:13px;font-weight:600;margin-top:1px}
+.card-extra{font-size:11px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.card-extra-item{display:flex;flex-direction:column;gap:1px}
+.card-extra-label{font-size:9px;color:var(--muted)}
+.card-extra-val{font-size:11px;font-weight:600}
 .earn-badge{display:inline-block;font-size:9px;font-weight:700;background:rgba(245,158,11,.15);color:var(--amber);padding:1px 6px;border-radius:4px;margin-top:3px;vertical-align:middle;line-height:1.4}
 
 .earn-list{display:flex;flex-direction:column;gap:6px}
@@ -510,25 +514,39 @@ function renderStocks(){
 
     const priceStr = price>0 ? fmt$(price) : '<span class="muted" style="font-size:11px">טוען...</span>';
 
+    const dayRange = q.dayLow&&q.dayHigh ? `${fmt$(q.dayLow)} – ${fmt$(q.dayHigh)}` : '—';
+    const vol      = q.volume ? (q.volume>=1e6?(q.volume/1e6).toFixed(1)+'M':(q.volume/1e3).toFixed(0)+'K') : '—';
+    const targetStr = target ? `${fmt$(target)} (${fmtPct(upside)})` : '—';
+
     return `<div class="card" onclick="openDetail('${t}')">
       <div class="card-top">
         <div class="card-left">
-          <div class="sym">${t}</div>
-          <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
-            <div class="con ${conColor(a.recommendation)}">${a.numAnalysts>0?conLabel(a.recommendation):'&nbsp;'}</div>
-            ${earnBadge?`<span class="earn-badge">${earnBadge}</span>`:''}
+          <div>
+            <div class="sym">${t}${earnBadge?`<span class="earn-badge" style="font-size:9px;margin-right:0;margin-right:5px">${earnBadge}</span>`:''}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.name&&q.name!==t?q.name:''}</div>
           </div>
+          ${a.numAnalysts>0?`<div class="con ${conColor(a.recommendation)}" style="font-size:10px;font-weight:700;white-space:nowrap">${conLabel(a.recommendation)}</div>`:''}
         </div>
         <div class="card-right">
           <div class="price">${priceStr}</div>
           <div class="chg ${clr(chgPct)}">${price>0?fmtPct(chgPct):'—'}</div>
         </div>
       </div>
-      ${target&&price?`<div class="card-extra">
-        <span class="muted">יעד</span>
-        <span class="${clr(upside)}">${fmt$(target)} (${fmtPct(upside)})</span>
-      </div>`:''}`+
-    `</div>`;
+      <div class="card-extra">
+        <div class="card-extra-item">
+          <span class="card-extra-label">טווח יום</span>
+          <span class="card-extra-val">${dayRange}</span>
+        </div>
+        <div class="card-extra-item">
+          <span class="card-extra-label">נפח</span>
+          <span class="card-extra-val">${vol}</span>
+        </div>
+        <div class="card-extra-item">
+          <span class="card-extra-label">יעד אנליסטים</span>
+          <span class="card-extra-val ${clr(upside)}">${targetStr}</span>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 }
 
