@@ -531,6 +531,26 @@ function renderKPIs(){
   document.getElementById('kpi-earn').textContent  = earn || (Object.keys(state.earnings).length ? '0' : '—');
 }
 
+// Custom logos/icons for indices and ETFs without Finnhub profiles
+const INDEX_ICONS = {
+  'SPX': '<div style="width:32px;height:32px;border-radius:8px;background:#1a3a5c;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;color:#4a9eff">S&P</div>',
+  'NDX': '<div style="width:32px;height:32px;border-radius:8px;background:#1a2a4a;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;color:#7eb8ff">NDX</div>',
+  'QQQ': '<div style="width:32px;height:32px;border-radius:8px;background:#1a2a4a;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;color:#7eb8ff">QQQ</div>',
+  'DJI': '<div style="width:32px;height:32px;border-radius:8px;background:#1a3a2a;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;color:#4aff8f">DJI</div>',
+};
+
+function getTickerLogo(ticker){
+  if(INDEX_ICONS[ticker]) return INDEX_ICONS[ticker];
+  const logo = state.profiles[ticker]?.logo;
+  if(logo) return `<img src="${logo}" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:var(--bg3);padding:3px;flex-shrink:0" onerror="this.outerHTML=getTickerFallback('${ticker}')" loading="lazy">`;
+  return getTickerFallback(ticker);
+}
+
+function getTickerFallback(ticker){
+  const initials = ticker.slice(0,2);
+  return `<div style="width:32px;height:32px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:var(--accent)">${initials}</div>`;
+}
+
 function renderStocks(){
   const filter = (document.getElementById('search-input')?.value||'').toLowerCase();
   const sort   = document.getElementById('sort-sel')?.value||'change';
@@ -570,7 +590,7 @@ function renderStocks(){
     return `<div class="card" onclick="openDetail('${t}')">
       <div class="card-top">
         <div class="card-left" style="flex-direction:row;align-items:center;gap:10px">
-          ${state.profiles[t]?.logo?`<img src="${state.profiles[t].logo}" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:var(--bg3);padding:3px;flex-shrink:0" onerror="this.style.display='none'" loading="lazy">`:'<div style="width:32px;height:32px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:var(--accent)">${t.slice(0,2)}</div>'}
+          ${getTickerLogo(t)}
           <div>
             <div class="sym">${t}${earnBadge?` <span class="earn-badge">${earnBadge}</span>`:''}</div>
             ${q.name&&q.name!==t?`<div class="name">${q.name}</div>`:''}
